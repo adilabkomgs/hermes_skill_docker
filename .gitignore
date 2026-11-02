@@ -1,0 +1,11 @@
+# Hermes internal
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Sensitive
+*.key
+*.pem
+*.env
