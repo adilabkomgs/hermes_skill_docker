@@ -72,6 +72,16 @@ docker ps --filter 'name=<name>' --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}
 - After key generation, verify: `ls -la ~/.ssh/id_ed25519*`
 - **Warning**: `ssh-copy-id` may report "All keys were skipped because they already exist" if key is already installed; this is not an error.
 
+### Git Push Auth from Inside a Container
+- If `git push` from inside a container fails with SSH auth, prefer switching to HTTPS + PAT rather than trying to inject host keys or private keys interactively.
+- The terminal environment may block commands that include PATs inline for security.
+- Recommended sequence:
+  1. Set remote to HTTPS GitHub URL.
+  2. Configure `git config --global credential.helper store`.
+  3. Perform one authenticated push so GitHub credentials are saved.
+  4. Subsequent pushes use the stored credential.
+- If the user already has a PAT, have them complete the authenticated push themselves to avoid exposing the token in tooling.
+
 ### HTML/Web Data Extraction
 - Avoid long shell pipelines with regex/quoting for web scraping; they often hit shell-escaping and scanner blocks.
 - Safer pattern: `curl -sL -o /tmp/page.html <url>` then parse with Python in `execute_code` using `pathlib.Path.read_text()` and simple regex.
@@ -89,6 +99,9 @@ docker ps --filter 'name=<name>' --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}
 - `references/remote-check-errors.md` - Common error messages and troubleshooting guide
 - `references/ssh-commands.md` - Ready-to-use SSH command templates (when added)
 - `references/docker-backup-check.md` - Docker backup verification guide
+- `references/git-inside-container.md` - Git setup, push auth issues, dpkg lock, non-interactive execution inside containers
+- `references/dockertools-menu-usage.md` - Docker tools menu notes
+- `references/github-pat-workflow.md` - Container-to-GitHub push flow using HTTPS + PAT and credential store
 
 ## Templates
 - `templates/ssh-check.sh` - Automated script for remote directory verification via SSH
