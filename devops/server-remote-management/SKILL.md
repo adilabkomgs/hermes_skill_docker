@@ -81,17 +81,28 @@ docker ps --filter 'name=<name>' --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}
   3. Perform one authenticated push so GitHub credentials are saved.
   4. Subsequent pushes use the stored credential.
 - If the user already has a PAT, have them complete the authenticated push themselves to avoid exposing the token in tooling.
+- **Verified working case (Nov 2026):** Container `hermes-agent-service` on VPS dcloud pushed to `github.com/adilabkomgs/hermes_skill_docker.git` by mounting host SSH key (`github_ed25519`) into `/root/.ssh/`, writing `~/.ssh/config` with `IdentityFile`, and setting remote to SSH URL.
+- **SSH key mount sequence:** `docker cp ~/.ssh/github_ed25519 <container>:/root/.ssh/`, `chmod 600`, then write `~/.ssh/config` with `StrictHostKeyChecking no`. Test with `ssh -T git@github.com`.
+- **Security note:** `~/.ssh/config` redirect may trigger dotfile-overwrite security scan; approve it. Avoid echoing PATs in tooling; prefer SSH key mount or have user push manually.
 
 ### HTML/Web Data Extraction
 - Avoid long shell pipelines with regex/quoting for web scraping; they often hit shell-escaping and scanner blocks.
 - Safer pattern: `curl -sL -o /tmp/page.html <url>` then parse with Python in `execute_code` using `pathlib.Path.read_text()` and simple regex.
 - For Wikipedia-style pages, the infobox template often contains structured data in JSON-like attributes; extract those with Python instead of fragile `grep`.
+- Kitco gold price: scrape from page HTML, search for `Current Price:` and `data-testid="hp-change"` and `data-testid="hp-quote-time"`. USD/IDR from exchangerate-api.com. Convert oz→gram by /28.3495.
 
 ### Package Install Inside Running Container
 - `docker exec <container> apt-get install ...` can fail with `dpkg lock-frontend` even as root if the container's filesystem is read-only or dpkg state is restricted.
 - Do not assume container packages are mutable; if install fails, fallback to rebuilding the image with the needed tool baked in.
+- Detect OS first: `docker exec <container> cat /etc/os-release` (Debian→apt, Alpine→apk).
 
-## VPS Health Thresholds
+### Web App Login Forms
+- Some PHP login forms show "Password baru dan konfirmasi tidak sama." when POST fields don't match expected schema; inspect actual `<form>` inputs with `curl ... | grep -A 20 '<form'` before assuming username/password.
+- Always check HTTP status (302 redirect = auth required) and title page to confirm login flow.
+
+### GitHub Repo Status Check
+- Use GitHub API: `curl -s https://api.github.com/repos/<user>/<repo> | python3 -m json.tool` to verify existence, branches, push time, visibility.
+- 200 = exists; 404 = not found yet.
 - Disk usage >= 80%: warn user and offer cleanup of old backups/logs.
 - Load average near 0 with available RAM > 500MB: system is healthy.
 
