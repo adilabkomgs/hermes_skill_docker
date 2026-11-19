@@ -18,6 +18,7 @@ Skills for managing and querying remote servers via various protocols (SSH, remo
 
 ## Language Preference
 **DEFAULT LANGUAGE: Indonesia** when user indicates preference with "gunakan bahasa indonesia" or similar. Switch to English only if user explicitly requests or switches mid-conversation.
+- **Keep replies concise; avoid long verbose explanations unless asked.**
 
 ## Core Workflow
 
@@ -96,6 +97,20 @@ docker ps --filter 'name=<name>' --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}
 - Do not assume container packages are mutable; if install fails, fallback to rebuilding the image with the needed tool baked in.
 - Detect OS first: `docker exec <container> cat /etc/os-release` (Debian→apt, Alpine→apk).
 
+### Inspecting Hermes Config / Active Model
+- To see what model Hermes is actually using, read `/root/.hermes/config.yaml` inside the container — `model.default`, `model.provider`, and `custom_providers[].models`.
+- Use `sh -c` not `bash -lc` for `docker exec` in these images (`bash` often absent).
+- `state.db` is SQLite but the container has **no `sqlite3` binary**; query via the bundled `better-sqlite3` Node module instead.
+- Never echo API keys from config.yaml into chat — they are masked in tool output but remain sensitive.
+- See `references/hermes-config-inspection.md` for the full field map and a verified config snapshot.
+
+### Server Health Reporting
+- Report health as a compact table: uptime, load, RAM, swap, disk, running/stopped containers.
+- Warn at disk >= 80%; offer cleanup rather than running destructive commands unprompted.
+- Cleanup order: `container prune` -> `image prune` -> `volume prune` -> `apt-get clean` (sudo). Always `du -sh` backups before `rm -rf`.
+- `sudo` over non-interactive SSH needs a TTY — skip sudo steps and hand them to the user instead of retrying.
+- See `references/server-health-cleanup.md` for the template.
+
 ### Web App Login Forms
 - Some PHP login forms show "Password baru dan konfirmasi tidak sama." when POST fields don't match expected schema; inspect actual `<form>` inputs with `curl ... | grep -A 20 '<form'` before assuming username/password.
 - Always check HTTP status (302 redirect = auth required) and title page to confirm login flow.
@@ -106,16 +121,30 @@ docker ps --filter 'name=<name>' --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}
 - Disk usage >= 80%: warn user and offer cleanup of old backups/logs.
 - Load average near 0 with available RAM > 500MB: system is healthy.
 
+## Remote Out-of-Process Handoff
+- The agent's local terminal environment is **NOT** the target VPS. When the user asks to check/manage a VPS (e.g. `38.47.85.105`), do **not** assume the terminal can reach it — check whether the environment actually has an SSH private key for that host.
+- If the environment has no key for the target host, **stop** the automated path. Do **not** fabricate container or server results from memory or history.
+- Instead: state the limitation in one sentence, then hand off the **exact manual command** for the user to run locally, e.g.:
+  `ssh adilabkomgs@38.47.85.105 'docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"'`
+- Log why the attempt failed (missing key / auth denied) so the next session knows not to retry the same blind SSH.
+
 ## References
 - `references/remote-check-errors.md` - Common error messages and troubleshooting guide
-- `references/ssh-commands.md` - Ready-to-use SSH command templates (when added)
 - `references/docker-backup-check.md` - Docker backup verification guide
 - `references/git-inside-container.md` - Git setup, push auth issues, dpkg lock, non-interactive execution inside containers
 - `references/dockertools-menu-usage.md` - Docker tools menu notes
+- `references/vps-access.md` - VPS agent access diagnosis: SSH key setup, disk/RAM/CPU status
+
+## Remote Out-of-Process Handoff
 - `references/github-pat-workflow.md` - Container-to-GitHub push flow using HTTPS + PAT and credential store
+- `references/9router-model-discovery.md` - How to discover models in 9router container (catalog, combos, logs)
+- `references/vps-access.md` - VPS agent access diagnosis: SSH key setup, disk/RAM/CPU status
+- `references/hermes-config-inspection.md` - Read active model/provider from Hermes config inside container
+- `references/server-health-cleanup.md` - Health check template, cleanup order, disk/backup pitfalls
 
 ## Templates
 - `templates/ssh-check.sh` - Automated script for remote directory verification via SSH
 
 ## Support Scripts
-Use `skill_manage(action='write_file', file_path='scripts/<name>.sh')` to add verification scripts
+- `scripts/sync-hermes-skills.sh` - Interactive backup/restore/status menu for Hermes skills <-> GitHub (also accepts `backup`/`restore`/`status` as arg)
+Use `skill_manage(action='write_file', file_path='scripts/<name>.sh')` to add more

@@ -12,17 +12,43 @@
     "use_count": 1,
     "view_count": 1
   },
+  "devops:server-remote-management": {
+    "archived_at": null,
+    "created_at": "2026-11-19T05:19:05.667643+00:00",
+    "created_by": null,
+    "last_patched_at": null,
+    "last_used_at": "2026-11-19T05:19:05.674372+00:00",
+    "last_viewed_at": "2026-11-19T05:19:05.667658+00:00",
+    "patch_count": 0,
+    "pinned": false,
+    "state": "active",
+    "use_count": 1,
+    "view_count": 1
+  },
+  "inference-model-discovery": {
+    "archived_at": null,
+    "created_at": "2026-11-13T10:37:58.928630+00:00",
+    "created_by": "agent",
+    "last_patched_at": "2026-11-13T21:03:40.332422+00:00",
+    "last_used_at": "2026-11-13T21:03:23.789049+00:00",
+    "last_viewed_at": "2026-11-13T21:03:23.757113+00:00",
+    "patch_count": 2,
+    "pinned": false,
+    "state": "active",
+    "use_count": 3,
+    "view_count": 3
+  },
   "server-remote-management": {
     "archived_at": null,
     "created_at": "2026-10-31T11:57:23.576836+00:00",
     "created_by": "agent",
-    "last_patched_at": "2026-11-04T20:05:04.072641+00:00",
-    "last_used_at": "2026-11-04T20:04:47.828202+00:00",
-    "last_viewed_at": "2026-11-04T20:04:47.821659+00:00",
-    "patch_count": 17,
+    "last_patched_at": "2026-11-19T05:01:35.324770+00:00",
+    "last_used_at": "2026-11-19T05:58:42.172935+00:00",
+    "last_viewed_at": "2026-11-19T05:58:42.161752+00:00",
+    "patch_count": 32,
     "pinned": false,
     "state": "active",
-    "use_count": 22,
-    "view_count": 22
+    "use_count": 42,
+    "view_count": 42
   }
 }
