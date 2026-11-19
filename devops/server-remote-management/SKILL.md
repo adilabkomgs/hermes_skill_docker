@@ -6,19 +6,52 @@ created: 2026-10-31
 updated: 2026-10-31
 ---
 
-# Server Remote Management
+## User Style & Workflow (First-Class Signals)
 
-## Overview
-Skills for managing and querying remote servers via various protocols (SSH, remote CLI). Handles infrastructure verification, backup checks, and cross-machine operations.
+When the user expresses style, tone, format, or workflow preferences (or gives a frustration signal like "stop doing X", "too verbose", "just give me the answer", or "I don't like Y"), encode it into the skill that governs that task. Do not leave the correction stuck in chat history.
 
-## Trigger Conditions
-- User mentions "cek mesin", "cek di server", "remote", "SSH ke", atau nama VPS
-- User requests file/folder checks on remote systems
-- Connection to external machines is needed
+### Language
+- Default to **Bahasa Indonesia** unless the user explicitly switches to English.
+  Example: if the user asks "cek kapasitas vps", reply in Indonesian.
 
-## Language Preference
-**DEFAULT LANGUAGE: Indonesia** when user indicates preference with "gunakan bahasa indonesia" or similar. Switch to English only if user explicitly requests or switches mid-conversation.
-- **Keep replies concise; avoid long verbose explanations unless asked.**
+### Style — Concise
+- Keep replies **concise**. Do not belabor.
+- Give direct numbers, a compact table, or a one-line verdict first.
+- Expand only if asked.
+
+### Sequencing / Workflow
+- If the user says "nggak perlu, langsung lanjut level 2" — stop re-explaining, apply the next action.
+- If you discover a repeatable fix (e.g. how to write into a bind-mounted container path), add it as a "Pitfall" or "Re-do" step in the governing skill.
+
+### Remote VPS access
+- Agent host and VPS are **two different machines**. Agent SSH keys are not VPS keys.
+- If SSH auth fails, do NOT fabricate results from memory/history. Hand off the exact manual command, then do the work from the user's result.
+- If a tool fails, capture the **FIX** (install command, config step, env var), not "tool is broken".
+
+## Principal skills (for remote VPS and container health)
+
+## User Preferences & Workflow Notes
+
+### Language
+- Default to **Bahasa Indonesia** for responses unless user explicitly switches to English (see `memory`). Switch to English only if user explicitly requests or switches mid-conversation.
+
+### Style
+- Keep replies **concise**. Avoid long verbose explanations unless asked.
+
+### Remote Access & Keying
+- When checking remote VPS (e.g. `38.47.85.105`):
+  1. Verify SSH key availability in the agent environment.
+  2. If SSH fails (`Permission denied`), DO NOT retry blindly. Hand off the exact manual command (e.g. `ssh user@host 'docker ps ...'`) for the user to run locally, then relay results.
+  3. If writing files to a bind-mounted volume (container -> host), write to the **container path** (e.g. `/app/workspace/...`) or use `docker cp` from the host. Writing to the host path directly from the agent may fail due to permissions or snapshot state.
+
+### Git Push Auth
+- SSH key auth requires the key to be registered on the target provider (GitHub).
+- If SSH fails, use **HTTPS + PAT**:
+  1. Set remote to HTTPS URL.
+  2. Use `git config --global credential.helper store` (or configure interactively).
+  3. Perform one authenticated push.
+  4. Subsequent pushes use the stored credential.
+  - Avoid echoing PATs in tooling.
 
 ## Core Workflow
 
@@ -32,6 +65,8 @@ Skills for managing and querying remote servers via various protocols (SSH, remo
 2. State what you intend to look up and get consent
 3. Provide manual SSH command for user reference
 4. Wait for user to execute and report results
+
+**VPS & container resource/status check:** follow the class-level runbook `vps-container-health`, then report as a compact table.
 
 ### 3. Remote File/Directory Checks
 When checking paths like docker backups:

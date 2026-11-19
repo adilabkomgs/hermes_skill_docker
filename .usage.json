@@ -42,13 +42,39 @@
     "archived_at": null,
     "created_at": "2026-10-31T11:57:23.576836+00:00",
     "created_by": "agent",
-    "last_patched_at": "2026-11-19T05:01:35.324770+00:00",
-    "last_used_at": "2026-11-19T05:58:42.172935+00:00",
-    "last_viewed_at": "2026-11-19T05:58:42.161752+00:00",
-    "patch_count": 32,
+    "last_patched_at": "2026-11-19T07:05:43.556191+00:00",
+    "last_used_at": "2026-11-19T12:20:21.707513+00:00",
+    "last_viewed_at": "2026-11-19T12:20:21.634555+00:00",
+    "patch_count": 36,
     "pinned": false,
     "state": "active",
-    "use_count": 42,
-    "view_count": 42
+    "use_count": 47,
+    "view_count": 47
+  },
+  "vps-container-health": {
+    "archived_at": null,
+    "created_at": "2026-11-19T07:04:43.301607+00:00",
+    "created_by": "agent",
+    "last_patched_at": null,
+    "last_used_at": "2026-11-19T12:20:21.776108+00:00",
+    "last_viewed_at": "2026-11-19T12:20:21.731935+00:00",
+    "patch_count": 0,
+    "pinned": false,
+    "state": "active",
+    "use_count": 2,
+    "view_count": 2
+  },
+  "vps-web-proxy": {
+    "archived_at": null,
+    "created_at": "2026-11-19T12:20:51.447009+00:00",
+    "created_by": "agent",
+    "last_patched_at": "2026-11-19T12:23:12.023857+00:00",
+    "last_used_at": null,
+    "last_viewed_at": null,
+    "patch_count": 1,
+    "pinned": false,
+    "state": "active",
+    "use_count": 0,
+    "view_count": 0
   }
 }
