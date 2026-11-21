@@ -28,15 +28,31 @@ When the user expresses style, tone, format, or workflow preferences (or gives a
 - If SSH auth fails, do NOT fabricate results from memory/history. Hand off the exact manual command, then do the work from the user's result.
 - If a tool fails, capture the **FIX** (install command, config step, env var), not "tool is broken".
 
+### 9router model discovery (remote VPS, container `9router`)
+- Model catalog: `/app/data/model-catalog.json` (5769+ models, 26 providers), keyed `<provider>/<model>`.
+- Container DB: `/app/data/db/data.sqlite` (no `sqlite3` binary — query via Node `better-sqlite3`).
+- Deepseek entries already present (verified Nov 2026): `scaleway:deepseek-v4.1-flash-1017`, `alibaba-cn:deepseek-v4.1-flash`, `oc|deepseek-v4.1-flash-free` (db/kv customModels adapter).
+- Discovery pattern (do not trust live endpoints blindly):
+  1. `docker exec 9router cat /app/data/model-catalog.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(list(d['models'].keys()))"` → enumerate catalog.
+  2. Filter for `deepseek` inside Python (json is robust); never re-derive by grep on raw JSON.
+  3. Combo check: `docker exec 9router node -e "const db=require('better-sqlite3')('/app/data/db/data.sqlite'); console.log(JSON.stringify(db.prepare(\"SELECT name,kind,models FROM combos\").all(),null,2))"` → fallback order.
+  4. Health: `docker exec 9router wget -qO- http://localhost:20128/api/health`.
+- Log noise / stale slugs: `TypeError: Failed to parse body as FormData`, `[modelCatalog] sync failed`, 400 "Model is unavailable". Treat as transient; verify via health before reacting.
+
 ## Principal skills (for remote VPS and container health)
 
 ## User Preferences & Workflow Notes
+## Git Push Authentication (critical fix)
+- **Fine-grained PAT cannot push** to repos (403) — verified. Use a **classic PAT (ghp_...)** with `repo` scope.
+- SSH key auth requires the key to be **registered on the target provider (GitHub)**. Agent's private key (`id_ed25519` → `hermes-docker`) was not registered, so SSH push was denied.
+- Verified working: classic PAT `<REDACTED_PAT>` pushed `master` to `adilabkomgs/hermes_skill_docker.git`.
+- If SSH fails and you want to use HTTPS+PAT, embed the token only in the `Authorization` header via `curl` or ask the user to complete the authenticated push themselves.
 
-### Language
-- Default to **Bahasa Indonesia** for responses unless user explicitly switches to English (see `memory`). Switch to English only if user explicitly requests or switches mid-conversation.
-
-### Style
-- Keep replies **concise**. Avoid long verbose explanations unless asked.
+### User Preferences — Concise Style (First-Class Signal)
+- **Bahasa Indonesia** is the default for chat replies and for the *report* the agent sends to the user. Switch to English only if the user explicitly requests English.
+- Report the agent's *technical findings* in compact tables / key:value pairs, with the verdict first.
+- The **SKILL.md body** carries verbosity guidance. Do NOT put the user's style/preferences only in memory — they belong here, because this skill governs the VPS/devops task class.
+- When reporting to the user, lead with a one-line verdict, then a compact table. Expand only if asked.
 
 ### Remote Access & Keying
 - When checking remote VPS (e.g. `38.47.85.105`):
@@ -149,19 +165,23 @@ docker ps --filter 'name=<name>' --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}
 ### Web App Login Forms
 - Some PHP login forms show "Password baru dan konfirmasi tidak sama." when POST fields don't match expected schema; inspect actual `<form>` inputs with `curl ... | grep -A 20 '<form'` before assuming username/password.
 - Always check HTTP status (302 redirect = auth required) and title page to confirm login flow.
+### Server Health Reporting
+- Report health as a compact table: uptime, load, RAM, swap, disk, running/stopped containers.
+- Warn at disk >= 80%; offer cleanup rather than running destructive commands unprompted.
+- Cleanup order: `container prune` -> `image prune` -> `volume prune` -> `apt-get clean` (sudo). Always `du -sh` backups before `rm -rf`.
+- `sudo` over non-interactive SSH needs a TTY — skip sudo steps and hand them to the user instead of retrying.
+- See `references/server-health-cleanup.md` for the template.
 
-### GitHub Repo Status Check
-- Use GitHub API: `curl -s https://api.github.com/repos/<user>/<repo> | python3 -m json.tool` to verify existence, branches, push time, visibility.
-- 200 = exists; 404 = not found yet.
-- Disk usage >= 80%: warn user and offer cleanup of old backups/logs.
-- Load average near 0 with available RAM > 500MB: system is healthy.
+## User Preferences — Concise Style
+- When reporting technical findings, lead with a **one-line verdict**, then a **compact table**. Expand only if asked.
+- **Bahasa Indonesia** is the default for all user-facing reports in this devops class. Switch to English only if the user explicitly requests it.
+- Do NOT put the user's style/preferences only in memory — the skill governs the task and must carry the guidance.
 
-## Remote Out-of-Process Handoff
-- The agent's local terminal environment is **NOT** the target VPS. When the user asks to check/manage a VPS (e.g. `38.47.85.105`), do **not** assume the terminal can reach it — check whether the environment actually has an SSH private key for that host.
-- If the environment has no key for the target host, **stop** the automated path. Do **not** fabricate container or server results from memory or history.
-- Instead: state the limitation in one sentence, then hand off the **exact manual command** for the user to run locally, e.g.:
-  `ssh adilabkomgs@38.47.85.105 'docker ps -a --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"'`
-- Log why the attempt failed (missing key / auth denied) so the next session knows not to retry the same blind SSH.
+## Core Workflow
+- PID 403 / permission errors on push → prefer classic PAT, not SSH retry.
+- DNS A-record for domain routing: `server.domain.com -> VPS IP (38.47.85.105)`.
+- Let's Encrypt cert path in nginx: `/etc/letsencrypt/live/<domain>/...` (owner root, readable by nginx when running root).
+- 9router model discovery: `docker exec 9router node -e "..."` (better-sqlite3) for combos; catalog at `/app/data/model-catalog.json`.
 
 ## References
 - `references/remote-check-errors.md` - Common error messages and troubleshooting guide
@@ -182,4 +202,3 @@ docker ps --filter 'name=<name>' --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}
 
 ## Support Scripts
 - `scripts/sync-hermes-skills.sh` - Interactive backup/restore/status menu for Hermes skills <-> GitHub (also accepts `backup`/`restore`/`status` as arg)
-Use `skill_manage(action='write_file', file_path='scripts/<name>.sh')` to add more
